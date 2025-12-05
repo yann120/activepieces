@@ -24,8 +24,15 @@ export const airtableUpdateRecordAction = createAction({
 
     const fieldsWithoutEmptyStrings: DynamicPropsValue = {};
 
+    const isEmptyValue = (v: unknown): boolean =>
+      v === '' ||
+      v === null ||
+      v === undefined ||
+      (Array.isArray(v) && v.length === 0) ||
+      (typeof v === 'object' && v !== null && Object.keys(v as Record<string, unknown>).length === 0);
+
     Object.keys(fields).forEach((k) => {
-      if (fields[k] !== '') {
+      if (!isEmptyValue(fields[k])) {
         fieldsWithoutEmptyStrings[k] = fields[k];
       }
     });

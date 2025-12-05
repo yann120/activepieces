@@ -761,6 +761,13 @@ export const airtableCommon = {
 
     const newFields: Record<string, unknown> = {};
 
+    const isEmptyValue = (v: unknown): boolean =>
+      v === '' ||
+      v === null ||
+      v === undefined ||
+      (Array.isArray(v) && v.length === 0) ||
+      (typeof v === 'object' && v !== null && Object.keys(v as Record<string, unknown>).length === 0);
+
     const airtable: AirtableTable = await fetchTable({
       token: auth,
       baseId: base,
@@ -770,21 +777,35 @@ export const airtableCommon = {
     airtable.fields.forEach((field) => {
       if (!AirtableEnterpriseFields.includes(field.type)) {
         const key = field.id;
+        const value = fields[key];
 
-        if (field.type === 'multipleAttachments' && fields[key]) {
-          newFields[key] = [
-            {
-              url: fields[key] as string,
-            },
-          ];
-        } else if (
-          ['multipleRecordLinks', 'multipleSelects'].includes(field.type)
-        ) {
-          if (Array.isArray(fields[key]) && (fields[key] as any[]).length > 0) {
-            newFields[key] = fields[key];
+        if (field.type === 'multipleAttachments') {
+          // Only set if value is a non-empty string
+          if (typeof value === 'string' && value !== '') {
+            newFields[key] = [{ url: value }];
+          }
+        } else if (field.type === 'multipleRecordLinks') {
+          // Only set when value is a non-empty array
+          if (Array.isArray(value) && value.length > 0) {
+            newFields[key] = value;
+          }
+        } else if (field.type === 'multipleSelects') {
+          // Only set when value is a non-empty array
+          if (Array.isArray(value) && value.length > 0) {
+            newFields[key] = value;
+          }
+        } else if (field.type === 'singleSelect') {
+          // Only set when value is a non-empty string or an object with a name property
+          if (typeof value === 'string' && value !== '') {
+            newFields[key] = value;
+          } else if (typeof value === 'object' && value !== null && 'name' in value) {
+            newFields[key] = value;
           }
         } else {
-          newFields[key] = fields[key];
+          // For other non-enterprise fields, only set if value is not empty
+          if (!isEmptyValue(value)) {
+            newFields[key] = value;
+          }
         }
       }
     });
