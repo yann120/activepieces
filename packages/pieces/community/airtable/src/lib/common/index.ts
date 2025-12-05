@@ -26,6 +26,20 @@ import {
 import { isNil } from '@activepieces/shared';
 import { airtableAuth } from '../..';
 
+/**
+ * Checks if a value is considered empty for Airtable field purposes.
+ * Empty values are: empty string, null, undefined, empty array, or empty object (no keys).
+ */
+export function isEmptyValue(v: unknown): boolean {
+  return (
+    v === '' ||
+    v === null ||
+    v === undefined ||
+    (Array.isArray(v) && v.length === 0) ||
+    (typeof v === 'object' && v !== null && Object.keys(v as Record<string, unknown>).length === 0)
+  );
+}
+
 
 interface Params {
   personalToken: string;
@@ -761,13 +775,6 @@ export const airtableCommon = {
 
     const newFields: Record<string, unknown> = {};
 
-    const isEmptyValue = (v: unknown): boolean =>
-      v === '' ||
-      v === null ||
-      v === undefined ||
-      (Array.isArray(v) && v.length === 0) ||
-      (typeof v === 'object' && v !== null && Object.keys(v as Record<string, unknown>).length === 0);
-
     const airtable: AirtableTable = await fetchTable({
       token: auth,
       baseId: base,
@@ -795,10 +802,15 @@ export const airtableCommon = {
             newFields[key] = value;
           }
         } else if (field.type === 'singleSelect') {
-          // Only set when value is a non-empty string or an object with a name property
+          // Only set when value is a non-empty string or an object with a non-empty name property
           if (typeof value === 'string' && value !== '') {
             newFields[key] = value;
-          } else if (typeof value === 'object' && value !== null && 'name' in value) {
+          } else if (
+            typeof value === 'object' &&
+            value !== null &&
+            'name' in value &&
+            (value as { name: unknown }).name !== ''
+          ) {
             newFields[key] = value;
           }
         } else {
