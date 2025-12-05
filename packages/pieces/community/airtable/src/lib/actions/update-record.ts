@@ -4,7 +4,7 @@ import {
   Property,
 } from '@activepieces/pieces-framework';
 
-import { airtableCommon } from '../common';
+import { airtableCommon, isEmptyValue } from '../common';
 import { airtableAuth } from '../../index';
 
 export const airtableUpdateRecordAction = createAction({
@@ -25,7 +25,7 @@ export const airtableUpdateRecordAction = createAction({
     const fieldsWithoutEmptyStrings: DynamicPropsValue = {};
 
     Object.keys(fields).forEach((k) => {
-      if (fields[k] !== '') {
+      if (!isEmptyValue(fields[k])) {
         fieldsWithoutEmptyStrings[k] = fields[k];
       }
     });

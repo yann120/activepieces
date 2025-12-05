@@ -26,6 +26,20 @@ import {
 import { isNil } from '@activepieces/shared';
 import { airtableAuth } from '../..';
 
+/**
+ * Checks if a value is considered empty for Airtable field purposes.
+ * Empty values are: empty string, null, undefined, empty array, or empty object (no keys).
+ */
+export function isEmptyValue(v: unknown): boolean {
+  return (
+    v === '' ||
+    v === null ||
+    v === undefined ||
+    (Array.isArray(v) && v.length === 0) ||
+    (typeof v === 'object' && v !== null && Object.keys(v as Record<string, unknown>).length === 0)
+  );
+}
+
 
 interface Params {
   personalToken: string;
@@ -770,21 +784,41 @@ export const airtableCommon = {
     airtable.fields.forEach((field) => {
       if (!AirtableEnterpriseFields.includes(field.type)) {
         const key = field.id;
+        const value = fields[key];
 
-        if (field.type === 'multipleAttachments' && fields[key]) {
-          newFields[key] = [
-            {
-              url: fields[key] as string,
-            },
-          ];
-        } else if (
-          ['multipleRecordLinks', 'multipleSelects'].includes(field.type)
-        ) {
-          if (Array.isArray(fields[key]) && (fields[key] as any[]).length > 0) {
-            newFields[key] = fields[key];
+        if (field.type === 'multipleAttachments') {
+          // Only set if value is a non-empty string
+          if (typeof value === 'string' && value !== '') {
+            newFields[key] = [{ url: value }];
+          }
+        } else if (field.type === 'multipleRecordLinks') {
+          // Only set when value is a non-empty array
+          if (Array.isArray(value) && value.length > 0) {
+            newFields[key] = value;
+          }
+        } else if (field.type === 'multipleSelects') {
+          // Only set when value is a non-empty array
+          if (Array.isArray(value) && value.length > 0) {
+            newFields[key] = value;
+          }
+        } else if (field.type === 'singleSelect') {
+          // Only set when value is a non-empty string or an object with a non-empty string name property
+          if (typeof value === 'string' && value !== '') {
+            newFields[key] = value;
+          } else if (
+            typeof value === 'object' &&
+            value !== null &&
+            'name' in value &&
+            typeof (value as { name: unknown }).name === 'string' &&
+            (value as { name: string }).name !== ''
+          ) {
+            newFields[key] = value;
           }
         } else {
-          newFields[key] = fields[key];
+          // For other non-enterprise fields, only set if value is not empty
+          if (!isEmptyValue(value)) {
+            newFields[key] = value;
+          }
         }
       }
     });
