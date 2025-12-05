@@ -802,14 +802,15 @@ export const airtableCommon = {
             newFields[key] = value;
           }
         } else if (field.type === 'singleSelect') {
-          // Only set when value is a non-empty string or an object with a non-empty name property
+          // Only set when value is a non-empty string or an object with a non-empty string name property
           if (typeof value === 'string' && value !== '') {
             newFields[key] = value;
           } else if (
             typeof value === 'object' &&
             value !== null &&
             'name' in value &&
-            (value as { name: unknown }).name !== ''
+            typeof (value as { name: unknown }).name === 'string' &&
+            (value as { name: string }).name !== ''
           ) {
             newFields[key] = value;
           }
